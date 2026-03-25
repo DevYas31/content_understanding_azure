@@ -14,7 +14,8 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
-from client.content_understanding_client import AzureContentUnderstandingClient
+from azure.ai.contentunderstanding import ContentUnderstandingClient
+from azure.core.credentials import AzureKeyCredential
 
 load_dotenv()
 
@@ -33,11 +34,10 @@ ANALYZERS = [
 ]
 
 
-def make_client():
-    return AzureContentUnderstandingClient(
+def make_client() -> ContentUnderstandingClient:
+    return ContentUnderstandingClient(
         endpoint=os.environ["AZURE_AI_ENDPOINT"],
-        api_version=os.environ["AZURE_AI_API_VERSION"],
-        subscription_key=os.environ["AZURE_AI_API_KEY"],
+        credential=AzureKeyCredential(os.environ["AZURE_AI_API_KEY"]),
     )
 
 
@@ -49,31 +49,22 @@ def main():
     print("=" * 50)
 
     for analyzer_id, schema_path in ANALYZERS:
-        print(f"\nCreating: {analyzer_id}")
+        print(f"\nCreating/Updating: {analyzer_id}")
         try:
-            client.begin_create_analyzer(
+            import json
+            with open(schema_path, "r", encoding="utf-8") as f:
+                schema_dict = json.load(f)
+
+            poller = client.begin_create_analyzer(
                 analyzer_id,
-                analyzer_template_path=schema_path
+                resource=schema_dict,
+                allow_replace=True
             )
+            poller.result()
             print(f"[OK]   {analyzer_id}")
-
+            
         except Exception as e:
-            error_str = str(e)
-
-            # 409 Conflict means it already exists — delete and recreate
-            if "409" in error_str or "ModelExists" in error_str or "Conflict" in error_str:
-                print(f"[WARN] Already exists. Deleting and recreating: {analyzer_id}")
-                try:
-                    client.delete_analyzer(analyzer_id)
-                    client.begin_create_analyzer(
-                        analyzer_id,
-                        analyzer_template_path=schema_path
-                    )
-                    print(f"[OK]   Recreated: {analyzer_id}")
-                except Exception as e2:
-                    print(f"[FAIL] Could not recreate {analyzer_id}: {e2}")
-            else:
-                print(f"[FAIL] {analyzer_id}: {e}")
+            print(f"[FAIL] {analyzer_id}: {e}")
 
     print("\n" + "=" * 50)
     print("Setup complete.")

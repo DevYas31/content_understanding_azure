@@ -14,7 +14,8 @@ import argparse
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
-from client.content_understanding_client import AzureContentUnderstandingClient
+from azure.ai.contentunderstanding import ContentUnderstandingClient
+from azure.core.credentials import AzureKeyCredential
 
 load_dotenv()
 
@@ -30,29 +31,35 @@ def main():
         print(f"[FAIL] File not found: {args.file}")
         sys.exit(1)
 
-    client = AzureContentUnderstandingClient(
+    client = ContentUnderstandingClient(
         endpoint=os.environ["AZURE_AI_ENDPOINT"],
-        api_version=os.environ["AZURE_AI_API_VERSION"],
-        subscription_key=os.environ["AZURE_AI_API_KEY"],
+        credential=AzureKeyCredential(os.environ["AZURE_AI_API_KEY"])
     )
 
     print(f"\nExtracting content from: {args.file}")
     print(f"Using prebuilt analyzer:  {PREBUILT_ANALYZER_ID}")
 
-    operation_url = client.begin_analyze_binary(PREBUILT_ANALYZER_ID, args.file)
-    result = client.poll_result(operation_url)
+    with open(args.file, "rb") as f:
+        poller = client.begin_analyze_binary(PREBUILT_ANALYZER_ID, binary_input=f.read())
+        result = poller.result()
+        
+    try:
+        import json
+        result_dict = json.loads(json.dumps(dict(result), default=lambda x: getattr(x, '__dict__', str(x))))
+    except Exception:
+        result_dict = dict(result)
 
     os.makedirs("output", exist_ok=True)
     base_name = os.path.splitext(os.path.basename(args.file))[0]
     output_path = f"output/{base_name}_content.json"
 
-    with open(output_path, "w") as f:
-        json.dump(result, f, indent=2)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(result_dict, f, indent=2)
 
     print(f"[OK] Done! Content saved → {output_path}")
 
     try:
-        contents = result.get("result", {}).get("contents", [])
+        contents = result_dict.get("contents", [])
         print(f"\nSummary: {len(contents)} content block(s) extracted.")
         for i, block in enumerate(contents[:3]):
             print(f"  Block {i+1}: {str(block)[:120]}...")

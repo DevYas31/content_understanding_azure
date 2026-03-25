@@ -36,6 +36,17 @@ load_dotenv()
 # Field extraction helpers
 # ---------------------------------------------------------------------------
 
+def unwrap_data(obj):
+    """Recursively removes the Azure SDK '_data' wrapper if present."""
+    if isinstance(obj, dict):
+        if "_data" in obj:
+            return unwrap_data(obj["_data"])
+        return {k: unwrap_data(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [unwrap_data(i) for i in obj]
+    return obj
+
+
 def get_field_value(field_data: dict) -> str:
     """Extract the display value from a field dict, regardless of type."""
     if "valueString"  in field_data:
@@ -57,6 +68,9 @@ def extract_fields_from_result(result: dict) -> list:
     Navigate the nested API result structure and return a flat list of
     {"name", "value", "type", "confidence"} dicts sorted by confidence.
     """
+    # Thoroughly unwrap the SDK model bindings first
+    result = unwrap_data(result)
+
     # Unwrap "extracted_fields" wrapper if present
     if "extracted_fields" in result:
         result = result["extracted_fields"]
@@ -66,6 +80,8 @@ def extract_fields_from_result(result: dict) -> list:
 
     rows = []
     for name, data in fields_dict.items():
+        if not isinstance(data, dict):
+            continue
         rows.append({
             "name":       name,
             "value":      get_field_value(data),

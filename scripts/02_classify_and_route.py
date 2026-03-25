@@ -23,7 +23,8 @@ import argparse
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
-from client.content_understanding_client import AzureContentUnderstandingClient
+from azure.ai.contentunderstanding import ContentUnderstandingClient
+from azure.core.credentials import AzureKeyCredential
 
 load_dotenv()
 
@@ -43,11 +44,10 @@ CATEGORY_ANALYZER_MAP = {
 CLASSIFIER_ANALYZER_ID = "myClassifier"
 
 
-def make_client():
-    return AzureContentUnderstandingClient(
+def make_client() -> ContentUnderstandingClient:
+    return ContentUnderstandingClient(
         endpoint=os.environ["AZURE_AI_ENDPOINT"],
-        api_version=os.environ["AZURE_AI_API_VERSION"],
-        subscription_key=os.environ["AZURE_AI_API_KEY"],
+        credential=AzureKeyCredential(os.environ["AZURE_AI_API_KEY"])
     )
 
 
@@ -59,11 +59,13 @@ def classify_document(client, file_path: str) -> tuple:
     """
     print(f"\nClassifying (with segment splitting): {file_path}")
 
-    response = client.begin_analyze_binary(CLASSIFIER_ANALYZER_ID, file_path)
-    result = client.poll_result(response)
+    with open(file_path, "rb") as f:
+        poller = client.begin_analyze_binary(CLASSIFIER_ANALYZER_ID, binary_input=f.read())
+        result = poller.result()
 
-    # Segments are nested inside the first content item
-    contents = result.get("result", {}).get("contents", [])
+    # The SDK result is a dict-like AnalysisResult object
+    # Segments are natively inside the first content item
+    contents = result.get("contents", [])
     segments = contents[0].get("segments", []) if contents else []
 
     print(f"[OK] Found {len(segments)} segment(s):")
@@ -73,16 +75,33 @@ def classify_document(client, file_path: str) -> tuple:
         end_pg   = seg.get("endPageNumber", "?")
         print(f"   Segment {i+1}: [{category}] (pages {start_pg}–{end_pg})")
 
-    return segments, result
+    # Deep convert the SDK model to a standard dict for JSON serialization
+    try:
+        result_dict = dict(result)
+        # Handle nested objects recursively if they aren't native dicts
+        import json
+        result_dict = json.loads(json.dumps(result_dict, default=lambda x: getattr(x, '__dict__', str(x))))
+    except Exception:
+        result_dict = str(result)
+
+    return segments, result_dict
 
 
 def extract_fields(client, file_path: str, analyzer_id: str) -> dict:
     """Run the field extraction analyzer on the file."""
     print(f"Extracting fields using: {analyzer_id}")
-    response = client.begin_analyze_binary(analyzer_id, file_path)
-    result = client.poll_result(response)
+    with open(file_path, "rb") as f:
+        poller = client.begin_analyze_binary(analyzer_id, binary_input=f.read())
+        result = poller.result()
     print(f"[OK] Extraction complete.")
-    return result
+    
+    try:
+        import json
+        result_dict = json.loads(json.dumps(dict(result), default=lambda x: getattr(x, '__dict__', str(x))))
+    except Exception:
+        result_dict = dict(result)
+        
+    return result_dict
 
 
 def save_output(data: dict, filename: str):

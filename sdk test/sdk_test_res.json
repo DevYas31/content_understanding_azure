@@ -1,0 +1,12 @@
+{
+  "type": "<class 'azure.ai.contentunderstanding.models._models.AnalysisResult'>",
+  "keys": [
+    "analyzerId",
+    "apiVersion",
+    "createdAt",
+    "stringEncoding",
+    "warnings",
+    "contents"
+  ],
+  "contents_length": 1
+}

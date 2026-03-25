@@ -17,16 +17,15 @@ import requests
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
-from client.content_understanding_client import AzureContentUnderstandingClient
-
+from azure.ai.contentunderstanding import ContentUnderstandingClient
+from azure.core.credentials import AzureKeyCredential
 load_dotenv()
 
 
-def get_client():
-    return AzureContentUnderstandingClient(
+def get_client() -> ContentUnderstandingClient:
+    return ContentUnderstandingClient(
         endpoint=os.environ["AZURE_AI_ENDPOINT"],
-        api_version=os.environ["AZURE_AI_API_VERSION"],
-        subscription_key=os.environ["AZURE_AI_API_KEY"],
+        credential=AzureKeyCredential(os.environ["AZURE_AI_API_KEY"])
     )
 
 

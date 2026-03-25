@@ -2,3 +2,6 @@ python-dotenv
 requests
 azure-identity
 azure-storage-blob
+azure-ai-contentunderstanding #for using Azure Content Understanding services
+azure-identity # for authentication with Azure services
+azure-core # base SDK dependency 
