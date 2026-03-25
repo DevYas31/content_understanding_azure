@@ -1,0 +1,78 @@
+{
+  "description": "Extract structured fields from loan application forms",
+  "baseAnalyzerId": "prebuilt-document",
+  "models": {
+    "completion": "gpt-4.1",
+    "embedding": "text-embedding-3-large"
+  },
+  "config": {
+    "returnDetails": true,
+    "disableContentFiltering": false,
+    "estimateFieldSourceAndConfidence": true
+  },
+  "fieldSchema": {
+    "fields": {
+      "applicantName": {
+        "type": "string",
+        "method": "extract",
+        "description": "Full legal name of the primary loan applicant as printed on the form, typically found in the 'Applicant Details' or 'Personal Information' section."
+      },
+      "dateOfBirth": {
+        "type": "string",
+        "method": "extract",
+        "description": "Applicant's date of birth in DD/MM/YYYY or MM-DD-YYYY format, found under 'DOB' or 'Date of Birth' field."
+      },
+      "panNumber": {
+        "type": "string",
+        "method": "extract",
+        "description": "10-character alphanumeric PAN card number (e.g., ABCDE1234F) found under 'PAN' or 'PAN Number' field in the KYC section."
+      },
+      "loanAmount": {
+        "type": "number",
+        "method": "extract",
+        "description": "Total loan amount requested by the applicant in numeric form, found under 'Loan Amount', 'Amount Required', or 'Sanctioned Amount'. Exclude currency symbols."
+      },
+      "loanPurpose": {
+        "type": "string",
+        "method": "extract",
+        "description": "Stated reason for the loan such as 'Home Purchase', 'Education', 'Vehicle', or 'Business Expansion', found under 'Purpose of Loan'."
+      },
+      "loanTenureMonths": {
+        "type": "number",
+        "method": "extract",
+        "description": "Requested repayment period in months. If stated in years, convert to months (e.g., 5 years = 60 months)."
+      },
+      "annualIncome": {
+        "type": "number",
+        "method": "extract",
+        "description": "Gross annual income of the applicant in numeric form. Found under 'Annual Income', 'Yearly Income', or 'Gross CTC'. Exclude currency symbols."
+      },
+      "employmentType": {
+        "type": "string",
+        "method": "classify",
+        "enum": ["Salaried", "Self-employed", "Business", "Other"],
+        "description": "Nature of employment as indicated on the form. Classify based on keywords: 'salaried/employed' → Salaried, 'professional/freelance' → Self-employed, 'proprietor/company' → Business."
+      },
+      "employerName": {
+        "type": "string",
+        "method": "extract",
+        "description": "Name of the current employer or business entity, found under 'Employer Name', 'Company Name', or 'Organization'."
+      },
+      "mobileNumber": {
+        "type": "string",
+        "method": "extract",
+        "description": "10-digit primary mobile number of the applicant, found under 'Mobile', 'Contact No.', or 'Phone Number'."
+      },
+      "email": {
+        "type": "string",
+        "method": "extract",
+        "description": "Applicant's email address found under 'Email ID' or 'Email Address'."
+      },
+      "residentialAddress": {
+        "type": "string",
+        "method": "extract",
+        "description": "Complete residential address including house number, street, city, state, and PIN code, found under 'Current Address' or 'Residential Address'."
+      }
+    }
+  }
+}

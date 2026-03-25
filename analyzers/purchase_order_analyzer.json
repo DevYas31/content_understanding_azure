@@ -1,0 +1,57 @@
+{
+  "description": "Extract structured fields from purchase orders issued by buyers to suppliers",
+  "baseAnalyzerId": "prebuilt-document",
+  "models": {
+    "completion": "gpt-4.1",
+    "embedding": "text-embedding-3-large"
+  },
+  "config": {
+    "returnDetails": true,
+    "disableContentFiltering": false,
+    "estimateFieldSourceAndConfidence": true
+  },
+  "fieldSchema": {
+    "fields": {
+      "poNumber": {
+        "type": "string",
+        "method": "extract",
+        "description": "Unique purchase order identifier found at the top under 'PO Number', 'PO No.', or 'Order Number'."
+      },
+      "poDate": {
+        "type": "string",
+        "method": "extract",
+        "description": "Date the purchase order was issued by the buyer, found under 'PO Date', 'Order Date', or 'Issue Date'."
+      },
+      "buyerName": {
+        "type": "string",
+        "method": "extract",
+        "description": "Name of the company or individual issuing the purchase order, found under 'Buyer', 'Ship From', or in the letterhead."
+      },
+      "supplierName": {
+        "type": "string",
+        "method": "extract",
+        "description": "Name of the vendor or supplier to whom the order is addressed, found under 'Vendor', 'Supplier', or 'Ship To'."
+      },
+      "deliveryDate": {
+        "type": "string",
+        "method": "extract",
+        "description": "Expected or requested delivery date for the ordered items, found under 'Delivery Date', 'Required By', or 'Expected Delivery'."
+      },
+      "deliveryAddress": {
+        "type": "string",
+        "method": "extract",
+        "description": "Full shipping or delivery address including street, city, state, and PIN/ZIP, found under 'Ship To', 'Delivery Address', or 'Consignee'."
+      },
+      "totalAmount": {
+        "type": "number",
+        "method": "extract",
+        "description": "Total value of the purchase order including taxes if applicable, found under 'PO Total', 'Grand Total', or 'Order Value'. Exclude currency symbols."
+      },
+      "paymentTerms": {
+        "type": "string",
+        "method": "extract",
+        "description": "Agreed payment conditions such as 'Net 30', '50% Advance', or 'Payment on Delivery', found under 'Payment Terms'."
+      }
+    }
+  }
+}

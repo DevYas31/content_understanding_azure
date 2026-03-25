@@ -1,0 +1,62 @@
+{
+  "description": "Extract structured fields from legal contracts and agreements",
+  "baseAnalyzerId": "prebuilt-document",
+  "models": {
+    "completion": "gpt-4.1",
+    "embedding": "text-embedding-3-large"
+  },
+  "config": {
+    "returnDetails": true,
+    "disableContentFiltering": false,
+    "estimateFieldSourceAndConfidence": true
+  },
+  "fieldSchema": {
+    "fields": {
+      "contractTitle": {
+        "type": "string",
+        "method": "extract",
+        "description": "Official title of the contract such as 'Service Agreement', 'Non-Disclosure Agreement', or 'Employment Contract', typically found at the top or in the preamble."
+      },
+      "contractDate": {
+        "type": "string",
+        "method": "extract",
+        "description": "Date the contract was executed or signed by all parties, found in the opening clause or signature section."
+      },
+      "partyOne": {
+        "type": "string",
+        "method": "extract",
+        "description": "Full legal name of the first party (e.g., company or individual), typically the service provider or employer, found in the introductory clause."
+      },
+      "partyTwo": {
+        "type": "string",
+        "method": "extract",
+        "description": "Full legal name of the second party (e.g., client or employee), typically the service recipient or employee, found in the introductory clause."
+      },
+      "contractValue": {
+        "type": "number",
+        "method": "extract",
+        "description": "Total monetary value or consideration of the contract in numeric form, found under 'Contract Value', 'Total Fees', or 'Consideration'. Exclude currency symbols."
+      },
+      "startDate": {
+        "type": "string",
+        "method": "extract",
+        "description": "The date the contract becomes effective or the service period begins, found under 'Effective Date', 'Commencement Date', or 'Start Date'."
+      },
+      "endDate": {
+        "type": "string",
+        "method": "extract",
+        "description": "The date the contract expires or the engagement ends, found under 'Expiry Date', 'Termination Date', or 'End Date'."
+      },
+      "governingLaw": {
+        "type": "string",
+        "method": "extract",
+        "description": "Jurisdiction or legal framework governing the contract, found in the 'Governing Law' or 'Jurisdiction' clause (e.g., 'Laws of Maharashtra, India')."
+      },
+      "paymentTerms": {
+        "type": "string",
+        "method": "extract",
+        "description": "Payment schedule or conditions stated in the contract such as 'Monthly', 'Milestone-based', or 'Net 45 days', found in the 'Payment' or 'Compensation' clause."
+      }
+    }
+  }
+}

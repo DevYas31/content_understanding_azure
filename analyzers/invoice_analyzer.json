@@ -1,0 +1,67 @@
+{
+  "description": "Extract structured fields from vendor invoices and billing documents",
+  "baseAnalyzerId": "prebuilt-document",
+  "models": {
+    "completion": "gpt-4.1",
+    "embedding": "text-embedding-3-large"
+  },
+  "config": {
+    "returnDetails": true,
+    "disableContentFiltering": false,
+    "estimateFieldSourceAndConfidence": true
+  },
+  "fieldSchema": {
+    "fields": {
+      "invoiceNumber": {
+        "type": "string",
+        "method": "extract",
+        "description": "Unique invoice identifier found near the top of the document under 'Invoice No.', 'Invoice #', or 'Bill No.'."
+      },
+      "invoiceDate": {
+        "type": "string",
+        "method": "extract",
+        "description": "Date the invoice was issued, found under 'Invoice Date', 'Date', or 'Billing Date'. Format: DD/MM/YYYY or MM-DD-YYYY."
+      },
+      "dueDate": {
+        "type": "string",
+        "method": "extract",
+        "description": "Payment deadline date found under 'Due Date', 'Pay By', or 'Payment Due'. If absent, leave null."
+      },
+      "vendorName": {
+        "type": "string",
+        "method": "extract",
+        "description": "Legal name of the vendor or supplier issuing the invoice, typically the largest text at the top or found under 'From' or 'Billed By'."
+      },
+      "vendorAddress": {
+        "type": "string",
+        "method": "extract",
+        "description": "Complete address of the vendor including street, city, state, and PIN/ZIP code, found under the vendor name or 'From' section."
+      },
+      "customerName": {
+        "type": "string",
+        "method": "extract",
+        "description": "Name of the buyer or customer being billed, found under 'Bill To', 'Customer Name', or 'Sold To'."
+      },
+      "subtotal": {
+        "type": "number",
+        "method": "extract",
+        "description": "Total value of goods or services before tax, found under 'Subtotal' or 'Amount Before Tax'. Exclude currency symbols."
+      },
+      "taxAmount": {
+        "type": "number",
+        "method": "extract",
+        "description": "Total tax applied including GST, VAT, or any other tax, found under 'Tax', 'GST', or 'VAT'. Exclude currency symbols."
+      },
+      "totalAmount": {
+        "type": "number",
+        "method": "extract",
+        "description": "Final payable amount after all taxes and discounts, found under 'Total', 'Grand Total', or 'Amount Due'. Exclude currency symbols."
+      },
+      "paymentTerms": {
+        "type": "string",
+        "method": "extract",
+        "description": "Payment condition stated on the invoice such as 'Net 30', 'Immediate', or 'Due on Receipt', found under 'Payment Terms'."
+      }
+    }
+  }
+}

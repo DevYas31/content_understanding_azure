@@ -1,0 +1,108 @@
+{
+  "description": "Extract structured fields from medical lab reports and diagnostic documents",
+  "baseAnalyzerId": "prebuilt-document",
+  "models": {
+    "completion": "gpt-4.1",
+    "embedding": "text-embedding-3-large"
+  },
+  "config": {
+    "returnDetails": true,
+    "disableContentFiltering": false,
+    "estimateFieldSourceAndConfidence": true
+  },
+  "fieldSchema": {
+    "fields": {
+      "PatientName": {
+        "type": "string",
+        "method": "extract",
+        "description": "Full name of the patient. Found immediately after 'NAME :' in the header. Usually in uppercase (e.g., K YASWANTH)."
+      },
+      "Age": {
+        "type": "number",
+        "method": "generate",
+        "description": "Numeric digits representing age. Located inside parentheses next to the name, e.g., extract '26' from '(26Y/M)'. Ignore units like 'Y'."
+      },
+      "Sex": {
+        "type": "string",
+        "method": "classify",
+        "enum": ["Male", "Female", "Other"],
+        "description": "Patient's gender. Determine as Male or Female from the 'M' or 'F' found inside parentheses after age. Ignore 'MD' in signatures."
+      },
+      "InstituteName": {
+        "type": "string",
+        "method": "extract",
+        "description": "Name of the medical facility (e.g., Thyrocare) found in the 'PROCESSED AT' section or top header."
+      },
+      "InstituteAddress": {
+        "type": "string",
+        "method": "extract",
+        "description": "The complete multi-line address starting with 'H. NO.' located under the 'PROCESSED AT' section."
+      },
+      "ReportTitle": {
+        "type": "string",
+        "method": "extract",
+        "description": "The specific page title, such as 'HBA PROFILE' or 'Summary Report', typically centered at the top."
+      },
+      "ReferredBy": {
+        "type": "string",
+        "method": "extract",
+        "description": "Name of the referring doctor or department found after the label 'REF. BY :'."
+      },
+      "OrderedLocation": {
+        "type": "string",
+        "method": "extract",
+        "description": "The collection site address found under 'SAMPLE COLLECTED AT:'. Extract city and state (e.g., GUDIVADA, ANDHRA PRADESH)."
+      },
+      "LabNumber": {
+        "type": "string",
+        "method": "extract",
+        "description": "Laboratory accession or report number uniquely identifying this test order."
+      },
+      "OrderDateTime": {
+        "type": "date",
+        "method": "extract",
+        "description": "The date and time the order was placed."
+      },
+      "CollectionDateTime": {
+        "type": "string",
+        "method": "extract",
+        "description": "Timestamp found after 'Sample Collected on (SCT) :'."
+      },
+      "ReceivingDateTime": {
+        "type": "string",
+        "method": "extract",
+        "description": "Timestamp found after 'Sample Received on (SRT) :'."
+      },
+      "ReportingDateTime": {
+        "type": "string",
+        "method": "extract",
+        "description": "Timestamp found after 'Report Released on (RRT) :'."
+      },
+      "ApprovedDate": {
+        "type": "string",
+        "method": "extract",
+        "description": "The date the report was finalized and approved by the pathologist."
+      },
+      "SpecimenType": {
+        "type": "string",
+        "method": "extract",
+        "description": "Type of sample used, e.g., 'SERUM' or 'EDTA Whole Blood', found under 'Sample Type'."
+      },
+      "Remarks": {
+        "type": "string",
+        "method": "extract",
+        "description": "Any clinical notes or 'Alert!!!' statements found in the 'Remarks' section."
+      },
+      "PrintDate": {
+        "type": "string",
+        "method": "extract",
+        "description": "The date the physical or PDF report was printed."
+      },
+      "Pages": {
+        "type": "string",
+        "method": "extract",
+        "description": "Total page count found in footer, e.g., extract '12' from 'Page: 1 of 12'."
+      }
+    }
+  }
+}

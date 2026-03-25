@@ -1,0 +1,36 @@
+{
+  "description": "Classify incoming documents into predefined business and medical categories",
+  "baseAnalyzerId": "prebuilt-document",
+  "models": {
+    "completion": "gpt-4.1",
+    "embedding": "text-embedding-3-large"
+  },
+  "config": {
+    "returnDetails": false,
+    "disableContentFiltering": false,
+    "enableSegment": true,
+    "contentCategories": {
+      "loan_application": {
+        "description": "A loan application form with applicant personal details, requested loan amount, purpose, income, and employment information"
+      },
+      "invoice": {
+        "description": "A vendor or supplier billing document containing invoice number, itemized charges, tax breakdown, and payment due date"
+      },
+      "contract": {
+        "description": "A legal agreement between two or more parties with defined terms, obligations, duration, value, and signatures"
+      },
+      "purchase_order": {
+        "description": "A buyer-issued procurement document listing ordered items, quantities, unit prices, delivery date, and supplier details"
+      },
+      "kyc_document": {
+        "description": "A government-issued identity document such as PAN card, Aadhaar, passport, or driving license used for customer verification"
+      },
+      "medical_report": {
+        "description": "A diagnostic lab report or medical test result document containing patient name, age, lab number, specimen type, test parameters, reference ranges, and pathologist remarks"
+      }
+    }
+  },
+  "fieldSchema": {
+    "fields": {}
+  }
+}

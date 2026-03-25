@@ -1,0 +1,4 @@
+python-dotenv
+requests
+azure-identity
+azure-storage-blob
