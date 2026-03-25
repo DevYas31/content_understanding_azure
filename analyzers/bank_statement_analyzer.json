@@ -1,0 +1,87 @@
+{
+  "description": "Extracts account summaries and transaction histories from bank or financial statements",
+  "baseAnalyzerId": "prebuilt-document",
+  "models": {
+    "completion": "gpt-4.1",
+    "embedding": "text-embedding-3-large"
+  },
+  "config": {
+    "returnDetails": true,
+    "disableContentFiltering": false,
+    "estimateFieldSourceAndConfidence": true
+  },
+  "fieldSchema": {
+    "fields": {
+      "accountName": {
+        "type": "string",
+        "method": "extract",
+        "description": "The name of the account holder"
+      },
+      "accountNumber": {
+        "type": "string",
+        "method": "extract",
+        "description": "The account number associated with the statement"
+      },
+      "statementPeriod": {
+        "type": "string",
+        "method": "extract",
+        "description": "The date range covered by the statement"
+      },
+      "beginningBalance": {
+        "type": "number",
+        "method": "extract",
+        "description": "The starting balance for the statement period"
+      },
+      "endingBalance": {
+        "type": "number",
+        "method": "extract",
+        "description": "The ending balance for the statement period"
+      },
+      "totalDeposits": {
+        "type": "number",
+        "method": "extract",
+        "description": "Total amount deposited during the period"
+      },
+      "totalWithdrawals": {
+        "type": "number",
+        "method": "extract",
+        "description": "Total amount withdrawn during the period"
+      },
+      "transactionHistory": {
+        "type": "array",
+        "method": "extract",
+        "description": "List of transactions during the statement period",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "method": "extract",
+              "description": "Date of the transaction"
+            },
+            "description": {
+              "type": "string",
+              "method": "extract",
+              "description": "Description or merchant name for the transaction"
+            },
+            "withdrawals": {
+              "type": "number",
+              "method": "extract",
+              "description": "Amount withdrawn"
+            },
+            "deposits": {
+              "type": "number",
+              "method": "extract",
+              "description": "Amount deposited"
+            },
+            "balance": {
+              "type": "number",
+              "method": "extract",
+              "description": "Running balance after the transaction"
+            }
+          }
+        }
+      }
+    }
+  }
+}

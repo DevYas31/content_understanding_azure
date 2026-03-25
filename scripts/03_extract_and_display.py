@@ -58,7 +58,15 @@ def get_field_value(field_data: dict) -> str:
     if "valueBoolean" in field_data:
         return str(field_data["valueBoolean"])
     if "valueArray"   in field_data:
-        return json.dumps(field_data["valueArray"], ensure_ascii=False)
+        cleaned_list = []
+        for item in field_data["valueArray"]:
+            if "valueObject" in item:
+                # Map inner properties cleanly
+                cleaned = {k: get_field_value(v) for k, v in item["valueObject"].items()}
+                cleaned_list.append(cleaned)
+            else:
+                cleaned_list.append(get_field_value(item))
+        return json.dumps(cleaned_list, ensure_ascii=False)
     # Field was recognised but no value extracted
     return "(not found)"
 
@@ -106,33 +114,12 @@ def print_and_save_segment_fields(base_filename: str, seg_num, category: str, pa
     if not fields:
         lines.append("  (no fields extracted)")
     else:
-        # Column widths
-        name_w  = max(max(len(f["name"])  for f in fields), 20)
-        value_w = min(max(max(len(f["value"]) for f in fields), 15), 60)
-
-        sep  = "+" + "-" * (name_w + 2) + "+" + "-" * (value_w + 2) + \
-               "+" + "-" * 12 + "+"
-        hdr  = (f"| {'Field':<{name_w}} | {'Value':<{value_w}} "
-                f"| {'Confidence':>10} |")
-
-        lines.append(sep)
-        lines.append(hdr)
-        lines.append(sep)
+        name_w  = max(len(f["name"]) for f in fields) if fields else 20
 
         for f in fields:
             val = f["value"]
-            if len(val) > value_w:
-                val = val[:value_w - 3] + "..."
-
             conf = f["confidence"]
-
-            lines.append(
-                f"| {f['name']:<{name_w}} "
-                f"| {val:<{value_w}} "
-                f"| {conf:>10.3f} |"
-            )
-
-        lines.append(sep)
+            lines.append(f"{f['name']:<{name_w}} : {val} ({conf:.3f})")
 
     output_str = "\n".join(lines)
     

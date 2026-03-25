@@ -27,6 +27,9 @@
       },
       "medical_report": {
         "description": "A diagnostic lab report or medical test result document containing patient name, age, lab number, specimen type, test parameters, reference ranges, and pathologist remarks"
+      },
+      "bank_statement": {
+        "description": "A financial account statement displaying account summary, beginning/ending balances, deposits, withdrawals, and an itemized history of transactions"
       }
     }
   },

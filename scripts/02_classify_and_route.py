@@ -29,7 +29,7 @@ from azure.core.credentials import AzureKeyCredential
 load_dotenv()
 
 # ------------------------------------------------------------------
-# CATEGORY → ANALYZER MAP
+# CATEGORY : ANALYZER MAP
 # NOTE: analyzer_id must use underscores only, NO hyphens
 # ------------------------------------------------------------------
 CATEGORY_ANALYZER_MAP = {
@@ -39,6 +39,7 @@ CATEGORY_ANALYZER_MAP = {
     "purchase_order":   "myPurchaseOrderAnalyzer",
     "kyc_document":     "myKycAnalyzer",
     "medical_report":   "myMedicalReportAnalyzer",
+    "bank_statement":   "myBankStatementAnalyzer",
 }
 
 CLASSIFIER_ANALYZER_ID = "myClassifier"

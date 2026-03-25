@@ -31,6 +31,7 @@ ANALYZERS = [
     ("myPurchaseOrderAnalyzer",     "analyzers/purchase_order_analyzer.json"),
     ("myKycAnalyzer",               "analyzers/kyc_analyzer.json"),
     ("myMedicalReportAnalyzer",     "analyzers/medical_report_analyzer.json"),
+    ("myBankStatementAnalyzer",     "analyzers/bank_statement_analyzer.json"),
 ]
 
 
