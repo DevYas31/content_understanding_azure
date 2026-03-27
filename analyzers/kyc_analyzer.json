@@ -12,47 +12,56 @@
   },
   "fieldSchema": {
     "fields": {
-      "documentType": {
-        "type": "string",
-        "method": "classify",
-        "enum": ["PAN Card", "Aadhaar", "Passport", "Driving License", "Voter ID", "Other"],
-        "description": "Type of identity document. Identify from layout and labels: PAN has a 10-char alphanumeric code, Aadhaar has a 12-digit number, Passport has a booklet format with MRZ lines."
-      },
-      "fullName": {
-        "type": "string",
-        "method": "extract",
-        "description": "Full name of the document holder as printed on the document, found under 'Name' or below the photo on the card."
-      },
-      "dateOfBirth": {
-        "type": "string",
-        "method": "extract",
-        "description": "Date of birth as printed on the document under 'DOB' or 'Date of Birth'. Format as stated on the document."
-      },
-      "documentNumber": {
-        "type": "string",
-        "method": "extract",
-        "description": "Primary identifier on the document: 10-char PAN number, 12-digit Aadhaar number, Passport number starting with a letter, or Driving License number."
-      },
-      "gender": {
-        "type": "string",
-        "method": "classify",
-        "enum": ["Male", "Female", "Other"],
-        "description": "Gender of the document holder as stated on the document under 'Sex' or 'Gender'."
-      },
-      "address": {
-        "type": "string",
-        "method": "extract",
-        "description": "Residential address printed on the document (mainly on Aadhaar or Voter ID), including house number, street, city, state, and PIN."
-      },
-      "expiryDate": {
-        "type": "string",
-        "method": "extract",
-        "description": "Document validity expiry date found under 'Valid Till' or 'Expiry Date'. Applicable for Passport and Driving License. Null for PAN and Aadhaar."
-      },
-      "issueDate": {
-        "type": "string",
-        "method": "extract",
-        "description": "Date the document was issued by the authority, found under 'Date of Issue'. Applicable mainly for Passport and Driving License."
+      "kycDocuments": {
+        "type": "array",
+        "description": "List of KYC documents present in the given image/page. If there are multiple cards (like PAN, Aadhaar, Driving License) in the same image, identify and extract each one as a separate object.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "documentType": {
+              "type": "string",
+              "method": "classify",
+              "enum": ["PAN Card", "Aadhaar", "Passport", "Driving License", "Voter ID", "Other"],
+              "description": "Type of identity document. Identify from layout and labels: PAN has a 10-char alphanumeric code, Aadhaar has a 12-digit number, Passport has a booklet format with MRZ lines."
+            },
+            "fullName": {
+              "type": "string",
+              "method": "extract",
+              "description": "Full name of the document holder as printed on the document, found under 'Name' or below the photo on the card."
+            },
+            "dateOfBirth": {
+              "type": "string",
+              "method": "extract",
+              "description": "Date of birth as printed on the document under 'DOB' or 'Date of Birth'. Format as stated on the document."
+            },
+            "documentNumber": {
+              "type": "string",
+              "method": "extract",
+              "description": "Primary identifier on the document: 10-char PAN number, 12-digit Aadhaar number, Passport number starting with a letter, or Driving License number."
+            },
+            "gender": {
+              "type": "string",
+              "method": "classify",
+              "enum": ["Male", "Female", "Other"],
+              "description": "Gender of the document holder as stated on the document under 'Sex' or 'Gender'."
+            },
+            "address": {
+              "type": "string",
+              "method": "extract",
+              "description": "Residential address printed on the document (mainly on Aadhaar or Voter ID), including house number, street, city, state, and PIN."
+            },
+            "expiryDate": {
+              "type": "string",
+              "method": "extract",
+              "description": "Document validity expiry date found under 'Valid Till' or 'Expiry Date'. Applicable for Passport and Driving License. Null for PAN and Aadhaar."
+            },
+            "issueDate": {
+              "type": "string",
+              "method": "extract",
+              "description": "Date the document was issued by the authority, found under 'Date of Issue'. Applicable mainly for Passport and Driving License."
+            }
+          }
+        }
       }
     }
   }

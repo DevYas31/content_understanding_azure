@@ -34,6 +34,25 @@
     }
   },
   "fieldSchema": {
-    "fields": {}
+    "fields": {
+      "multiple_categories_found": {
+        "type": "array",
+        "description": "List ALL distinct document categories found anywhere in this file. If a single page/image contains multiple distinct documents (for instance, a PAN card and an Invoice together in the same image), list all corresponding categories here.",
+        "items": {
+          "type": "string",
+          "method": "classify",
+          "enum": [
+            "loan_application",
+            "invoice",
+            "contract",
+            "purchase_order",
+            "kyc_document",
+            "medical_report",
+            "bank_statement"
+          ],
+          "description": "A category found in the file."
+        }
+      }
+    }
   }
 }
