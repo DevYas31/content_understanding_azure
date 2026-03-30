@@ -56,29 +56,18 @@ def make_client() -> ContentUnderstandingClient:
 
 
 # ---------------------------------------------------------------------------
-# Utility & Extraction Helpers
+# Field extraction and display helpers
 # ---------------------------------------------------------------------------
 
-def to_dict(obj):
-    """Deep convert SDK models to dicts and remove '_data' wrappers."""
-    if isinstance(obj, (dict, list)):
-        # If it's already a dict or list, we still want to unwrap the internal values
-        if isinstance(obj, dict):
-            if "_data" in obj: return to_dict(obj["_data"])
-            return {k: to_dict(v) for k, v in obj.items()}
-        return [to_dict(i) for i in obj]
-    
-    # Check if it's an SDK object with a dict representation
-    if hasattr(obj, "__dict__") or hasattr(obj, "items"):
-        try:
-            # Most Azure SDK objects can be serialized via json.dumps/loads loop
-            # to get a clean, nested dictionary structure.
-            raw = json.loads(json.dumps(obj, default=lambda x: getattr(x, '__dict__', str(x))))
-            return to_dict(raw)
-        except Exception:
-            return str(obj)
+def unwrap_data(obj):
+    """Recursively removes the Azure SDK '_data' wrapper if present."""
+    if isinstance(obj, dict):
+        if "_data" in obj:
+            return unwrap_data(obj["_data"])
+        return {k: unwrap_data(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [unwrap_data(i) for i in obj]
     return obj
-
 
 
 def get_field_value(field_data: dict) -> str:
@@ -139,20 +128,22 @@ def extract_fields_from_dict(fields_dict: dict, prefix="") -> list:
 def extract_fields_from_result(result: dict) -> list:
     """
     Navigate the nested API result structure and return a flat list of
-    {"name", "value", "type", "confidence"} dicts sorted by schema order.
+    {"name", "value", "type", "confidence"} dicts sorted by confidence.
     """
-    # Thoroughly unwrap the SDK model bindings and _data markers
-    result = to_dict(result)
+    # Thoroughly unwrap the SDK model bindings first
+    result = unwrap_data(result)
 
-    # Unwrap "extracted_fields" wrapper if it's a saved JSON format
+    # Unwrap "extracted_fields" wrapper if present
     if "extracted_fields" in result:
         result = result["extracted_fields"]
 
     contents = result.get("result", result).get("contents", [])
     fields_dict = contents[0].get("fields", {}) if contents else {}
 
-    # Return nested items in document order (no sort)
-    return extract_fields_from_dict(fields_dict)
+    rows = extract_fields_from_dict(fields_dict)
+
+    # Do not sort rows here, so we preserve the original schema ordering returned by Azure API
+    return rows
 
 
 def print_and_save_segment_fields(base_filename: str, seg_num, category: str, pages: str, fields: list):
@@ -195,25 +186,45 @@ def print_and_save_segment_fields(base_filename: str, seg_num, category: str, pa
 # ---------------------------------------------------------------------------
 
 def classify_document(client, file_path: str) -> tuple:
-    """Classify the document and check for multiple overlapping categories."""
+    """
+    Classify the document using the classifier analyzer (enableSegment=true).
+    Azure splits the PDF into segments and classifies each one independently.
+    We also check for 'multiple_categories_found' to route a single page to multiple analyzers.
+    Returns: (list of segments, raw_classification_result_dict)
+    """
     print(f"\nClassifying (with segment splitting): {file_path}")
 
     with open(file_path, "rb") as f:
         poller = client.begin_analyze_binary(CLASSIFIER_ANALYZER_ID, binary_input=f.read())
-        result_dict = to_dict(poller.result())
+        result = poller.result()
+
+    # Deep convert the SDK model to a standard dict for JSON serialization
+    try:
+        result_dict = dict(result)
+        # Handle nested objects recursively if they aren't native dicts
+        import json
+        result_dict = json.loads(json.dumps(result_dict, default=lambda x: getattr(x, '__dict__', str(x))))
+        result_dict = unwrap_data(result_dict)
+    except Exception:
+        result_dict = dict(result)
+        result_dict = unwrap_data(result_dict)
 
     # Segments are natively inside the first content item
     contents = result_dict.get("contents", [])
     segments = contents[0].get("segments", []) if contents else []
 
-    # Check for multiple categories found on the same page via our custom field
+    # Check for multiple categories found on the same page
     fields = contents[0].get("fields", {}) if contents else {}
     mult_array = fields.get("multiple_categories_found", {}).get("valueArray", [])
     
-    extracted_cats = [item.get("valueString") for item in mult_array if "valueString" in item]
+    extracted_cats = []
+    for item in mult_array:
+        if "valueString" in item:
+            extracted_cats.append(item["valueString"])
+            
     existing_cats = set(s.get("category") for s in segments)
     
-    # Append 'virtual' segments for categories found by the AI but not segmented by page
+    # Append any categories that the classifier found but didn't segment natively
     for c in extracted_cats:
         if c not in existing_cats and c in CATEGORY_ANALYZER_MAP:
             segments.append({
@@ -225,9 +236,11 @@ def classify_document(client, file_path: str) -> tuple:
 
     print(f"[OK] Found {len(segments)} segment(s) to process:")
     for i, seg in enumerate(segments):
-        cat, start, end = seg.get("category"), seg.get("startPageNumber"), seg.get("endPageNumber")
-        v_flag = " (virtual routing)" if seg.pop("_virtual", False) else ""
-        print(f"   Segment {i+1}: [{cat}] (pages {start}–{end}){v_flag}")
+        category = seg.get("category", "unknown")
+        start_pg = seg.get("startPageNumber", "?")
+        end_pg   = seg.get("endPageNumber", "?")
+        v_flag   = " (virtual routing)" if seg.pop("_virtual", False) else ""
+        print(f"   Segment {i+1}: [{category}] (pages {start_pg}–{end_pg}){v_flag}")
 
     return segments, result_dict
 
@@ -237,7 +250,16 @@ def extract_fields(client, file_path: str, analyzer_id: str) -> dict:
     print(f"Extracting fields using: {analyzer_id}")
     with open(file_path, "rb") as f:
         poller = client.begin_analyze_binary(analyzer_id, binary_input=f.read())
-        return to_dict(poller.result())
+        result = poller.result()
+    print(f"[OK] Extraction complete.")
+    
+    try:
+        import json
+        result_dict = json.loads(json.dumps(dict(result), default=lambda x: getattr(x, '__dict__', str(x))))
+    except Exception:
+        result_dict = dict(result)
+        
+    return result_dict
 
 
 def save_output(data: dict, filename: str):
@@ -250,83 +272,127 @@ def save_output(data: dict, filename: str):
 
 
 def process_file(client, file_path: str) -> dict:
-    """Full pipeline: classify → route → extract → save & print."""
-    print(f"\n{'='*60}\n  Processing: {file_path}\n{'='*60}")
+    """Full pipeline: classify all segments → route each → extract → save & print."""
+    print("\n" + "=" * 60)
+    print(f"  Processing: {file_path}")
+    print("=" * 60)
 
     if not os.path.exists(file_path):
-        print(f"[FAIL] File not found: {file_path}"); return {}
+        print(f"[FAIL] File not found: {file_path}")
+        return {}
 
     base_name = os.path.splitext(os.path.basename(file_path))[0]
-    segments, class_res = classify_document(client, file_path)
-    save_output(class_res, f"{base_name}_classification.json")
+
+    # Step 1: Classify — returns ALL segments
+    segments, classification_result = classify_document(client, file_path)
+    save_output(classification_result, f"{base_name}_classification.json")
 
     if not segments:
-        print("[ WARN ] No segments found."); return {}
+        print("[ WARN ]  No segments returned from classifier.")
+        return {}
 
+    # Step 2: Loop over every segment and route independently
     all_segment_results = []
-    for i, seg in enumerate(segments):
-        seg_num, cat, start, end = i+1, seg["category"], seg["startPageNumber"], seg["endPageNumber"]
-        print(f"\n--- Segment {seg_num}/{len(segments)}: [{cat}] (pages {start}–{end}) ---")
 
-        analyzer_id = CATEGORY_ANALYZER_MAP.get(cat)
+    for i, segment in enumerate(segments):
+        segment_num = i + 1
+        category    = segment.get("category", "unknown")
+        start_pg    = segment.get("startPageNumber", "?")
+        end_pg      = segment.get("endPageNumber", "?")
+
+        print(f"\n--- Segment {segment_num}/{len(segments)}: [{category}] (pages {start_pg}–{end_pg}) ---")
+
+        analyzer_id = CATEGORY_ANALYZER_MAP.get(category)
+        
+        extracted_fields_list = []
+
         if not analyzer_id:
-            print(f"[ WARN ] No analyzer for '{cat}' — skipping.")
-            res = {"segment": seg_num, "category": cat, "pages": f"{start}–{end}", "note": "Unmapped"}
+            print(f"[ WARN ]  No analyzer mapped for category: '{category}' — skipping.")
+            segment_result = {
+                "segment":          segment_num,
+                "category":         category,
+                "pages":            f"{start_pg}–{end_pg}",
+                "analyzer_used":    None,
+                "extracted_fields": None,
+                "note": f"No analyzer registered for category '{category}'"
+            }
         else:
-            extraction = extract_fields(client, file_path, analyzer_id)
-            res = {"segment": seg_num, "category": cat, "pages": f"{start}–{end}", "analyzer_used": analyzer_id, "extracted_fields": extraction}
-            save_output(res, f"{base_name}_segment{seg_num}_{cat}_result.json")
+            extraction_result = extract_fields(client, file_path, analyzer_id)
+            segment_result = {
+                "segment":          segment_num,
+                "category":         category,
+                "pages":            f"{start_pg}–{end_pg}",
+                "analyzer_used":    analyzer_id,
+                "extracted_fields": extraction_result
+            }
+            save_output(segment_result, f"{base_name}_segment{segment_num}_{category}_result.json")
             
-            # Print extraction results
-            print(f"\n{'='*60}\n  EXTRACTED FIELDS -- Segment {seg_num}\n{'='*60}")
-            print_and_save_segment_fields(base_name, seg_num, cat, f"{start}–{end}", extract_fields_from_result(extraction))
+            extracted_fields_list = extract_fields_from_result(extraction_result)
 
-        all_segment_results.append(res)
+        # Print beautifully to console
+        print(f"\n{'=' * 60}")
+        print(f"  EXTRACTED FIELDS  --  Segment {segment_num}")
+        print(f"{'=' * 60}")
+        print_and_save_segment_fields(base_name, segment_num, category, f"{start_pg}–{end_pg}", extracted_fields_list)
 
-    final = {"file": file_path, "total_segments": len(segments), "segments": all_segment_results}
-    save_output(final, f"{base_name}_all_segments_result.json")
+        all_segment_results.append(segment_result)
+
+    # Step 3: Save combined result
+    final_result = {
+        "file":           file_path,
+        "total_segments": len(segments),
+        "segments":       all_segment_results
+    }
+    save_output(final_result, f"{base_name}_all_segments_result.json")
     print(f"\nDone! {len(segments)} segment(s) processed for: {file_path}")
-    return final
+    return final_result
 
 
 def main():
-    print("\n--- Azure Content Understanding: Multi-File Input ---")
-    print("Enter a file path, a folder path, or a comma-separated list of paths.")
-    user_input = input("Target path(s): ").strip().strip("\"'")
-    
-    if not user_input:
-        print("No input provided. Exiting."); return
+    parser = argparse.ArgumentParser(
+        description="Classify and extract fields from PDF documents, then display results.",
+        epilog=(
+            "Examples:\n"
+            "  python scripts/02_classify_and_route.py\n"
+            "  python scripts/02_classify_and_route.py --file data/report.pdf\n"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--file", nargs="+", required=False, help="Path(s) to PDF file(s)")
+    args = parser.parse_args()
 
-    client = make_client(); all_results = []
+    client = make_client()
+    all_results = []
     
-    # 1. Split by commas for multiple explicit paths
-    raw_paths = [p.strip().strip("\"'") for p in user_input.split(",")]
-    
-    # 2. Expand folder paths if provided
-    final_paths = []
-    for p in raw_paths:
-        if os.path.isdir(p):
-            for f in os.listdir(p):
-                if f.lower().endswith(('.pdf', '.png', '.jpg', '.jpeg', '.tiff', '.bmp')):
-                    final_paths.append(os.path.join(p, f))
-        elif os.path.isfile(p):
-            final_paths.append(p)
-        else:
-            print(f"[WARN] Path not found or unsupported: {p}")
+    file_paths = getattr(args, "file", None)
 
-    if not final_paths:
-        print("No valid files found. Exiting."); return
-
-    print(f"\nProcessing {len(final_paths)} file(s)...")
-    for path in final_paths:
-        result = process_file(client, path)
-        if result: all_results.append(result)
+    if file_paths:
+        for file_path in file_paths:
+            result = process_file(client, file_path)
+            all_results.append(result)
+    else:
+        # Interactive mode
+        file_path = input("Enter the path to the PDF file to process: ").strip()
+        
+        # Remove any surrounding quotes if they dragged and dropped the file
+        file_path = file_path.strip("\"'")
+        
+        if not file_path:
+            print("No file path provided. Exiting.")
+            sys.exit(0)
+            
+        if not os.path.exists(file_path):
+            print(f"[FAIL] File not found: {file_path}")
+            sys.exit(1)
+            
+        result = process_file(client, file_path)
+        all_results.append(result)
 
     if len(all_results) > 1:
         save_output(all_results, "combined_results.json")
-        print("\n[OK] Combined results saved → output/combined_results.json")
+        print(f"\nCombined results JSON → output/combined_results.json")
 
-    print(f"\n[OK] All {len(all_results)} files processed successfully.")
+    print("\n[OK] All files processed.")
 
 
 if __name__ == "__main__":
