@@ -22,7 +22,9 @@ Usage:
 import os
 import sys
 import json
-import argparse
+import time
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dotenv import load_dotenv
@@ -33,7 +35,8 @@ load_dotenv()
 
 # ------------------------------------------------------------------
 # CATEGORY : ANALYZER MAP
-# NOTE: analyzer_id must use underscores only, NO hyphens
+# analyzer_id : Classifier 
+# NOTE: analyzer_id must use underscores only, NO hyphens but classifier must use camilcase without spaces,hyphens or underscores.
 # ------------------------------------------------------------------
 CATEGORY_ANALYZER_MAP = {
     "loan_application": "myLoanApplicationAnalyzer",
@@ -198,9 +201,11 @@ def classify_document(client, file_path: str) -> tuple:
     """Classify the document and check for multiple overlapping categories."""
     print(f"\nClassifying (with segment splitting): {file_path}")
 
+    t0 = time.perf_counter()
     with open(file_path, "rb") as f:
         poller = client.begin_analyze_binary(CLASSIFIER_ANALYZER_ID, binary_input=f.read())
         result_dict = to_dict(poller.result())
+    print(f" Classification completed in {time.perf_counter() - t0:.1f}s")
 
     # Segments are natively inside the first content item
     contents = result_dict.get("contents", [])
@@ -232,25 +237,57 @@ def classify_document(client, file_path: str) -> tuple:
     return segments, result_dict
 
 
-def extract_fields(client, file_path: str, analyzer_id: str) -> dict:
-    """Run the field extraction analyzer on the file."""
-    print(f"Extracting fields using: {analyzer_id}")
-    with open(file_path, "rb") as f:
-        poller = client.begin_analyze_binary(analyzer_id, binary_input=f.read())
-        return to_dict(poller.result())
+def extract_fields_from_binary(client, file_content: bytes, analyzer_id: str, start_page: int = None, end_page: int = None) -> dict:
+    """Run the field extraction analyzer on a specific page range (thread-safe, no printing)."""
+    content_range = f"{start_page}-{end_page}" if start_page and end_page else None
+    poller = client.begin_analyze_binary(analyzer_id, binary_input=file_content, content_range=content_range)
+    return to_dict(poller.result())
 
 
 def save_output(data: dict, filename: str):
     """Save result dict to output/ folder as JSON."""
-    os.makedirs("output", exist_ok=True)
-    output_path = os.path.join("output", filename)
+    script_dir   = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    out_dir = os.path.join(project_root, "output")
+    os.makedirs(out_dir, exist_ok=True)
+    output_path = os.path.join(out_dir, filename)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
-    print(f"Saved JSON → {output_path}")
+
+
+def _process_analyzer_group(client, file_content: bytes, analyzer_id: str, seg_items: list, results: dict):
+    """
+    Process a group of segments that share the same analyzer — SERIALLY.
+    Called from a thread. Stores results in the shared `results` dict keyed by segment index.
+    """
+    for seg_index, seg in seg_items:
+        cat   = seg["category"]
+        start = seg["startPageNumber"]
+        end   = seg["endPageNumber"]
+
+        if not analyzer_id:                       # unmapped category
+            results[seg_index] = {
+                "segment": seg_index + 1, "category": cat,
+                "pages": f"{start}–{end}", "note": "Unmapped"
+            }
+            continue
+
+        extraction = extract_fields_from_binary(client, file_content, analyzer_id, start, end)
+        results[seg_index] = {
+            "segment": seg_index + 1, "category": cat,
+            "pages": f"{start}–{end}", "analyzer_used": analyzer_id,
+            "extracted_fields": extraction
+        }
 
 
 def process_file(client, file_path: str) -> dict:
-    """Full pipeline: classify → route → extract → save & print."""
+    """
+    Full pipeline: classify → route → extract (parallel by analyzer) → save & print.
+
+    Segments that use DIFFERENT analyzers run in PARALLEL.
+    Segments that share the SAME analyzer run SERIALLY within their group.
+    All output is printed cleanly AFTER extraction completes.
+    """
     print(f"\n{'='*60}\n  Processing: {file_path}\n{'='*60}")
 
     if not os.path.exists(file_path):
@@ -263,23 +300,62 @@ def process_file(client, file_path: str) -> dict:
     if not segments:
         print("[ WARN ] No segments found."); return {}
 
-    all_segment_results = []
+    # Read file once — shared across all threads (bytes are immutable, thread-safe)
+    with open(file_path, "rb") as f:
+        file_content = f.read()
+
+    # ── Group segments by analyzer ──────────────────────────────────────
+    analyzer_groups = defaultdict(list)       # analyzer_id → [(seg_index, seg), ...]
     for i, seg in enumerate(segments):
-        seg_num, cat, start, end = i+1, seg["category"], seg["startPageNumber"], seg["endPageNumber"]
+        analyzer_id = CATEGORY_ANALYZER_MAP.get(seg["category"])
+        key = analyzer_id or ""               # empty string = unmapped
+        analyzer_groups[key].append((i, seg))
+
+    unique_analyzers = [k for k in analyzer_groups if k]   # non-empty = real analyzers
+    print(f"\n Launching {len(unique_analyzers)} analyzer group(s) in parallel "
+          f"({len(segments)} segment(s) total)…")
+    for aid, items in analyzer_groups.items():
+        label = aid if aid else "(unmapped)"
+        seg_list = ", ".join(f"Seg {i+1}" for i, _ in items)
+        print(f"   {label}: {seg_list}  [serial within group]")
+
+    # ── Run groups in parallel ──────────────────────────────────────────
+    results = {}                              # seg_index → result dict
+    t0 = time.perf_counter()
+
+    with ThreadPoolExecutor(max_workers=max(len(analyzer_groups), 1)) as pool:
+        futures = {
+            pool.submit(_process_analyzer_group, client, file_content, aid, items, results): aid
+            for aid, items in analyzer_groups.items()
+        }
+        for future in as_completed(futures):
+            future.result()                   # re-raise any thread exceptions
+
+    elapsed = time.perf_counter() - t0
+    print(f"\n All extractions completed in {elapsed:.1f}s")
+
+    # ── Print & save results IN SEGMENT ORDER ───────────────────────────
+    all_segment_results = []
+    for i in range(len(segments)):
+        res = results.get(i, {})
+        seg_num = i + 1
+        cat   = segments[i]["category"]
+        start = segments[i]["startPageNumber"]
+        end   = segments[i]["endPageNumber"]
+
         print(f"\n--- Segment {seg_num}/{len(segments)}: [{cat}] (pages {start}–{end}) ---")
 
-        analyzer_id = CATEGORY_ANALYZER_MAP.get(cat)
-        if not analyzer_id:
-            print(f"[ WARN ] No analyzer for '{cat}' — skipping.")
-            res = {"segment": seg_num, "category": cat, "pages": f"{start}–{end}", "note": "Unmapped"}
-        else:
-            extraction = extract_fields(client, file_path, analyzer_id)
-            res = {"segment": seg_num, "category": cat, "pages": f"{start}–{end}", "analyzer_used": analyzer_id, "extracted_fields": extraction}
+        if res.get("note") == "Unmapped":
+            print(f"[ WARN ] No analyzer for '{cat}' — skipped.")
+        elif "extracted_fields" in res:
             save_output(res, f"{base_name}_segment{seg_num}_{cat}_result.json")
-            
-            # Print extraction results
+            print(f"Saved JSON → output/{base_name}_segment{seg_num}_{cat}_result.json")
+
             print(f"\n{'='*60}\n  EXTRACTED FIELDS -- Segment {seg_num}\n{'='*60}")
-            print_and_save_segment_fields(base_name, seg_num, cat, f"{start}–{end}", extract_fields_from_result(extraction))
+            print_and_save_segment_fields(
+                base_name, seg_num, cat, f"{start}–{end}",
+                extract_fields_from_result(res["extracted_fields"])
+            )
 
         all_segment_results.append(res)
 
@@ -324,10 +400,13 @@ def main():
 
     if len(all_results) > 1:
         save_output(all_results, "combined_results.json")
-        print("\n[OK] Combined results saved → output/combined_results.json")
+        print("\n[Succeeded] Combined results saved → output/combined_results.json")
 
-    print(f"\n[OK] All {len(all_results)} files processed successfully.")
+    print(f"\n[Succeeded] All {len(all_results)} files processed successfully.")
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     main()
+    end_time = time.time()
+    print(f"\n[Succeeded] All files processed successfully in {end_time - start_time:.2f} seconds.")
