@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure AI Content Understanding — Intelligent Document Processing</title>
+    <meta name="description" content="Automatically classify, segment, and extract structured data from mixed PDF documents using Azure AI Content Understanding.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/frontend/style.css">
+</head>
+<body>
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- NAVIGATION                                                        -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <nav class="nav" id="nav">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <div class="nav-logo">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="url(#navGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <defs><linearGradient id="navGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4f6ef7"/><stop offset="100%" stop-color="#00d4ff"/></linearGradient></defs>
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                </div>
+                <span class="nav-title">Content<span class="nav-title-accent">AI</span></span>
+            </div>
+            <div class="nav-links">
+                <a href="#hero" class="nav-link active">Home</a>
+                <a href="#upload-section" class="nav-link">Analyze</a>
+                <a href="#architecture" class="nav-link">Architecture</a>
+                <a href="#categories" class="nav-link">Categories</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- HERO SECTION                                                      -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="hero" id="hero">
+        <div class="hero-bg">
+            <div class="hero-orb hero-orb-1"></div>
+            <div class="hero-orb hero-orb-2"></div>
+            <div class="hero-orb hero-orb-3"></div>
+            <div class="hero-grid"></div>
+        </div>
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="hero-badge-dot"></span>
+                Powered by Azure AI
+            </div>
+            <h1 class="hero-title">
+                Intelligent Document<br>
+                <span class="hero-title-gradient">Understanding</span>
+            </h1>
+            <p class="hero-subtitle">
+                Automatically classify, segment, and extract structured data from mixed documents. 
+                Upload a PDF containing invoices, bank statements, KYC documents, and more — 
+                our AI pipeline handles everything.
+            </p>
+            <div class="hero-actions">
+                <a href="#upload-section" class="btn btn-primary" id="hero-cta">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Upload Document
+                </a>
+                <button class="btn btn-secondary" id="demo-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Try Demo
+                </button>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span class="hero-stat-number">7</span>
+                    <span class="hero-stat-label">Document Types</span>
+                </div>
+                <div class="hero-stat-divider"></div>
+                <div class="hero-stat">
+                    <span class="hero-stat-number">~3×</span>
+                    <span class="hero-stat-label">Faster (Parallel)</span>
+                </div>
+                <div class="hero-stat-divider"></div>
+                <div class="hero-stat">
+                    <span class="hero-stat-number">95%+</span>
+                    <span class="hero-stat-label">Accuracy</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-scroll-indicator">
+            <div class="hero-scroll-mouse">
+                <div class="hero-scroll-wheel"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- UPLOAD SECTION                                                    -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="section" id="upload-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Analyze Your Document</h2>
+                <p class="section-desc">Drop your file below or click to browse. We support mixed multi-page documents.</p>
+            </div>
+
+            <div class="upload-card" id="upload-card">
+                <div class="upload-zone" id="upload-zone">
+                    <div class="upload-zone-inner">
+                        <div class="upload-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </div>
+                        <p class="upload-text">Drag & drop your document here</p>
+                        <p class="upload-subtext">or click to browse files</p>
+                        <div class="upload-formats">
+                            <span class="format-badge">PDF</span>
+                            <span class="format-badge">PNG</span>
+                            <span class="format-badge">JPG</span>
+                            <span class="format-badge">TIFF</span>
+                            <span class="format-badge">BMP</span>
+                        </div>
+                    </div>
+                    <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp" hidden>
+                </div>
+
+                <!-- File Preview (shown after file selected) -->
+                <div class="file-preview" id="file-preview" style="display:none;">
+                    <div class="file-preview-icon" id="file-preview-icon">📄</div>
+                    <div class="file-preview-info">
+                        <p class="file-preview-name" id="file-preview-name">document.pdf</p>
+                        <p class="file-preview-size" id="file-preview-size">2.4 MB</p>
+                    </div>
+                    <button class="file-preview-remove" id="file-remove-btn" title="Remove file">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+
+                <div class="upload-actions">
+                    <button class="btn btn-primary btn-lg" id="analyze-btn" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        Analyze Document
+                    </button>
+                    <button class="btn btn-ghost" id="demo-btn-2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        Try with sample data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- PIPELINE PROGRESS                                                 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="section pipeline-section" id="pipeline-section" style="display:none;">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Processing Pipeline</h2>
+                <p class="section-desc" id="pipeline-status-text">Initializing...</p>
+            </div>
+            <div class="pipeline">
+                <div class="pipeline-step" id="step-upload" data-step="1">
+                    <div class="pipeline-step-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div class="pipeline-step-label">Upload</div>
+                    <div class="pipeline-step-desc">File received</div>
+                </div>
+                <div class="pipeline-connector" id="conn-1"></div>
+                <div class="pipeline-step" id="step-classify" data-step="2">
+                    <div class="pipeline-step-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </div>
+                    <div class="pipeline-step-label">Classify</div>
+                    <div class="pipeline-step-desc">Identifying types...</div>
+                </div>
+                <div class="pipeline-connector" id="conn-2"></div>
+                <div class="pipeline-step" id="step-segment" data-step="3">
+                    <div class="pipeline-step-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    </div>
+                    <div class="pipeline-step-label">Segment</div>
+                    <div class="pipeline-step-desc">Splitting documents...</div>
+                </div>
+                <div class="pipeline-connector" id="conn-3"></div>
+                <div class="pipeline-step" id="step-extract" data-step="4">
+                    <div class="pipeline-step-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <div class="pipeline-step-label">Extract</div>
+                    <div class="pipeline-step-desc">Getting fields...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- RESULTS DASHBOARD                                                 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="section" id="results-section" style="display:none;">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Extraction Results</h2>
+                <p class="section-desc" id="results-subtitle">Processing complete</p>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-grid" id="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-icon summary-icon-segments">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    </div>
+                    <div class="summary-value" id="summary-segments">0</div>
+                    <div class="summary-label">Segments Found</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon summary-icon-fields">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    </div>
+                    <div class="summary-value" id="summary-fields">0</div>
+                    <div class="summary-label">Fields Extracted</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon summary-icon-confidence">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <div class="summary-value" id="summary-confidence">0%</div>
+                    <div class="summary-label">Avg Confidence</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon summary-icon-time">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="summary-value" id="summary-time">0s</div>
+                    <div class="summary-label">Processing Time</div>
+                </div>
+            </div>
+
+            <!-- Segment Cards -->
+            <div class="segments-container" id="segments-container">
+                <!-- Dynamically populated by JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- ARCHITECTURE SECTION                                              -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="section section-alt" id="architecture">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Two-Pass Architecture</h2>
+                <p class="section-desc">Our intelligent pipeline uses a two-pass strategy for maximum accuracy.</p>
+            </div>
+
+            <div class="arch-flow">
+                <div class="arch-card arch-card-input">
+                    <div class="arch-card-icon">📄</div>
+                    <h3>Input Document</h3>
+                    <p>Mixed PDF / Image with multiple document types</p>
+                </div>
+                <div class="arch-arrow">
+                    <svg width="40" height="24" viewBox="0 0 40 24" fill="none"><path d="M0 12H36M36 12L28 4M36 12L28 20" stroke="url(#archArrow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="archArrow" x1="0" y1="12" x2="40" y2="12"><stop stop-color="#4f6ef7"/><stop offset="1" stop-color="#00d4ff"/></linearGradient></defs></svg>
+                </div>
+                <div class="arch-card arch-card-pass1">
+                    <div class="arch-card-badge">Pass 1</div>
+                    <div class="arch-card-icon">🔍</div>
+                    <h3>Classify & Segment</h3>
+                    <p>AI identifies document types and splits pages into logical segments</p>
+                </div>
+                <div class="arch-arrow">
+                    <svg width="40" height="24" viewBox="0 0 40 24" fill="none"><path d="M0 12H36M36 12L28 4M36 12L28 20" stroke="url(#archArrow2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="archArrow2" x1="0" y1="12" x2="40" y2="12"><stop stop-color="#00d4ff"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs></svg>
+                </div>
+                <div class="arch-card arch-card-pass2">
+                    <div class="arch-card-badge">Pass 2</div>
+                    <div class="arch-card-icon">📊</div>
+                    <h3>Route & Extract</h3>
+                    <p>Each segment routed to a specialized extractor for high-accuracy field extraction</p>
+                </div>
+                <div class="arch-arrow">
+                    <svg width="40" height="24" viewBox="0 0 40 24" fill="none"><path d="M0 12H36M36 12L28 4M36 12L28 20" stroke="url(#archArrow3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="archArrow3" x1="0" y1="12" x2="40" y2="12"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#f472b6"/></linearGradient></defs></svg>
+                </div>
+                <div class="arch-card arch-card-output">
+                    <div class="arch-card-icon">✅</div>
+                    <h3>Structured Output</h3>
+                    <p>JSON + human-readable fields with confidence scores</p>
+                </div>
+            </div>
+
+            <div class="arch-features">
+                <div class="arch-feature">
+                    <div class="arch-feature-icon">⚡</div>
+                    <h4>Parallel Execution</h4>
+                    <p>Different analyzers run simultaneously via ThreadPoolExecutor for ~3× speedup</p>
+                </div>
+                <div class="arch-feature">
+                    <div class="arch-feature-icon">🎯</div>
+                    <h4>Page-Level Routing</h4>
+                    <p>Only relevant pages sent to each analyzer via content_range — no wasted API calls</p>
+                </div>
+                <div class="arch-feature">
+                    <div class="arch-feature-icon">🔀</div>
+                    <h4>Virtual Segments</h4>
+                    <p>Multi-category pages (e.g., PAN + Aadhaar on one image) are automatically split</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CATEGORIES SECTION                                                -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="section" id="categories">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Supported Document Types</h2>
+                <p class="section-desc">The classifier automatically detects and routes these document categories.</p>
+            </div>
+
+            <div class="categories-grid">
+                <div class="category-card">
+                    <div class="category-icon">📋</div>
+                    <h3>Invoice</h3>
+                    <p>Vendor billing, line items, tax breakdowns, payment terms</p>
+                    <div class="category-fields">10 fields</div>
+                </div>
+                <div class="category-card">
+                    <div class="category-icon">🏦</div>
+                    <h3>Bank Statement</h3>
+                    <p>Account summary, balances, transaction history</p>
+                    <div class="category-fields">8+ fields</div>
+                </div>
+                <div class="category-card">
+                    <div class="category-icon">🏥</div>
+                    <h3>Medical Report</h3>
+                    <p>Patient info, lab results, specimen details, findings</p>
+                    <div class="category-fields">16 fields</div>
+                </div>
+                <div class="category-card">
+                    <div class="category-icon">📝</div>
+                    <h3>Loan Application</h3>
+                    <p>Applicant details, income, employment, loan terms</p>
+                    <div class="category-fields">12 fields</div>
+                </div>
+                <div class="category-card">
+                    <div class="category-icon">🪪</div>
+                    <h3>KYC Document</h3>
+                    <p>PAN, Aadhaar, passport, driving license verification</p>
+                    <div class="category-fields">8 fields</div>
+                </div>
+                <div class="category-card">
+                    <div class="category-icon">📦</div>
+                    <h3>Purchase Order</h3>
+                    <p>PO numbers, items, quantities, pricing, delivery</p>
+                    <div class="category-fields">7 fields</div>
+                </div>
+                <div class="category-card">
+                    <div class="category-icon">📃</div>
+                    <h3>Contract</h3>
+                    <p>Parties, terms, obligations, duration, signatures</p>
+                    <div class="category-fields">8 fields</div>
+                </div>
+                <div class="category-card category-card-add">
+                    <div class="category-icon">➕</div>
+                    <h3>Add Your Own</h3>
+                    <p>Create a JSON schema and add one line to the routing map</p>
+                    <div class="category-fields">Extensible</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- FOOTER                                                            -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="footer-brand">
+                    <span class="nav-title">Content<span class="nav-title-accent">AI</span></span>
+                    <p>Built on Azure AI Content Understanding SDK</p>
+                </div>
+                <div class="footer-links">
+                    <a href="#hero">Home</a>
+                    <a href="#upload-section">Analyze</a>
+                    <a href="#architecture">Architecture</a>
+                    <a href="#categories">Categories</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>Azure AI Content Understanding — Document Processing Pipeline &copy; 2026</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/frontend/app.js"></script>
+</body>
+</html>
